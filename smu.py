@@ -24,14 +24,14 @@ class hp4142b(object):
         if not cmd.endswith("\n"):
             cmd = cmd+"\n"
         #print("CMD: %s" % cmd)
-        return inst.write(cmd)
+        return self.inst.write(cmd)
 
     def idn(self):
         self.write("*IDN?")
         try:
-            return(inst.read().decode('ascii'))
+            return(self.inst.read().decode('ascii'))
         except:
-            print(gpib_err(inst.ibsta()))
+            print(self.gpib_err(self.inst.ibsta()))
             return None   
     
     def voltage(self, ch, v=0.0, range=0, i_lim=0.001, lim_mode=0):
@@ -143,7 +143,7 @@ class hp4142b(object):
         self.write("CA")
         time.sleep(10)
         self.status()
-        print("IBSTA: "+ gpib_err(inst.ibsta()))
+        print("IBSTA: "+ self.gpib_err(self.inst.ibsta()))
 
         print("Calibrated")
     
@@ -182,7 +182,7 @@ class hp4142b(object):
     def status(self):
         self.write("*STB?")
         st = self.inst.read().decode('ascii')
-        print("Status: %s %s" %(st,  statusdecode(int(st))))
+        print("Status: %s %s" %(st,  self.statusdecode(int(st))))
         
     def nub(self):
         self.write("NUB?")
@@ -203,7 +203,7 @@ class hp4142b(object):
     
         while readmore:
             try:
-                ibread=inst.read().decode('ascii')
+                ibread=self.inst.read().decode('ascii')
                 if ibread.endswith("\n"):
                     readmore=False
             except:
@@ -212,7 +212,7 @@ class hp4142b(object):
                 
             outdata=outdata+ibread
 
-        print("IBSTA: "+ gpib_err(inst.ibsta()))
+        print("IBSTA: "+ self.gpib_err(self.inst.ibsta()))
         self._resdata = outdata
         return outdata
 
@@ -220,7 +220,7 @@ class hp4142b(object):
         return self.write("XE")
 
     
-    def parseresult(res, channelnames):
+    def parseresult(self, res, channelnames):
         results = {}
     
         errors_reported = []
@@ -228,7 +228,7 @@ class hp4142b(object):
         items = res.split(",")
         for i in items:
             st=i[0]
-            ch=channelnames[int((ord(i[1])-ord('A')+1)/2-1)]
+            ch=channelnames[int(ord(i[1])-ord('A'))]
             meas=i[2]
             v=float(i[3:])
             if(st in ('N', 'W', 'E')):
@@ -240,10 +240,9 @@ class hp4142b(object):
                 if not(st in errors_reported):
                     print("MEAS_ERR: %s" % i)
                     errors_reported.append(st)
-            return results
+        return results
 
-
-        hp4142n_status_bits= { 
+    hp4142n_status_bits= { 
             'Data ready': 0,
             'Wait': 1,
             'NotUsed': 2,
@@ -254,7 +253,7 @@ class hp4142b(object):
             'Shut down': 7
         }
 
-        gpib_err_bits={
+    gpib_err_bits={
             'DCAS' : 0,
             'DTAS' : 1,
             'LACS' : 2,
@@ -273,20 +272,20 @@ class hp4142b(object):
             'ERR' : 15
         };
 
-        def gpib_err(bits):
+    def gpib_err(self, bits):
             errs = []
-            for err in gpib_err_bits:
-                if bits & (2**gpib_err_bits[err]):
+            for err in self.gpib_err_bits:
+                if bits & (2**self.gpib_err_bits[err]):
                     errs.append(err)
 
             return " ".join(errs)
 
-        def statusdecode(bits):
-            stat = []
-            for err in hp4142n_status_bits:
-                if bits & (2**hp4142n_status_bits[err]):
-                    stat.append(err)
+    def statusdecode(self, bits):
+        stat = []
+        for err in self.hp4142n_status_bits:
+            if bits & (2**self.hp4142n_status_bits[err]):
+                stat.append(err)
 
-            return " ".join(stat)
+        return " ".join(stat)
 
 
