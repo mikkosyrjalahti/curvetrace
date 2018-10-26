@@ -33,6 +33,14 @@ class hp4142b(object):
         except:
             print(self.gpib_err(self.inst.ibsta()))
             return None   
+
+    def errors(self):
+        self.write("ERR?")
+        try:
+            return(self.inst.read().decode('ascii'))
+        except:
+            print(self.gpib_err(self.inst.ibsta()))
+            return None   
     
     def voltage(self, ch, v=0.0, range=0, i_lim=0.001, lim_mode=0):
         return self.write("DV%d,%d,%+.3e,%+.3e,%d\n" % ( ch, range, v, i_lim, lim_mode ))
