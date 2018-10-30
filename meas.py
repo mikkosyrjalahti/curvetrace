@@ -2,13 +2,34 @@ import logging
 
 log = logging.getLogger(__name__)
 
-class pnp:
+class measurement:
+    def connect(self):
+        cc = []
+        for ch in self.channels:
+            if not ch.startswith('_slot'):
+                cc.append(ch)
+
+        self.smu.connect(cc)
+
+    def xe_and_read(self):
+        self.smu.xe()
+        self.smu.disconnect()
+        r=self.smu.readresult()
+        d=self.smu.parseresult(r, self.channels)
+
+        pass
+
+
+class bjt(measurement):
+    pass
+
+class pnp(bjt):
     def __init__(self, smu, B=2, C=4):
         assert(B!=C)
         self.smu = smu
         self.C=C
         self.B=B
-        self.channels=['slot1', 'slot2', 'slot3', 'slot4', 'slot5', 'slot6', 'slot7', 'slot8']
+        self.channels=['_slot1', '_slot2', '_slot3', '_slot4', '_slot5', '_slot6', '_slot7', '_slot8']
         self.channels[C]='C'
         self.channels[B]='B'
 
@@ -104,13 +125,13 @@ class pnp:
 
        return d
 
-class npn:
+class npn(bjt):
     def __init__(self, smu, B=2, C=4):
         assert(B!=C)
         self.smu = smu
         self.C=C
         self.B=B
-        self.channels=['slot1', 'slot2', 'slot3', 'slot4', 'slot5', 'slot6', 'slot7', 'slot8']
+        self.channels=['_slot1', '_slot2', '_slot3', '_slot4', '_slot5', '_slot6', '_slot7', '_slot8']
         self.channels[C]='C'
         self.channels[B]='B'
         
@@ -191,13 +212,16 @@ class npn:
         
         return d
 
-class njfet:
+class jfet(measurement):
+    pass
+
+class njfet(jfet):
     def __init__(self, smu, G=2, D=4):
         assert(D!=G)
         self.smu = smu
         self.G=G
         self.D=D
-        self.channels=['slot1', 'slot2', 'slot3', 'slot4', 'slot5', 'slot6', 'slot7', 'slot8']
+        self.channels=['_slot1', '_slot2', '_slot3', '_slot4', '_slot5', '_slot6', '_slot7', '_slot8']
         self.channels[G]='G'
         self.channels[D]='D'    
 
@@ -267,13 +291,16 @@ class njfet:
         d=parseresult(r, channels)
         return d['V_G'][0]
 
-class nmosfet:
+class mosfet(measurement):
+    pass
+
+class nmosfet(mosfet):
     def __init__(self, smu, G=2, D=4):
         assert(D!=G)
         self.smu = smu
         self.G=G
         self.D=D
-        self.channels=['slot1', 'slot2', 'slot3', 'slot4', 'slot5', 'slot6', 'slot7', 'slot8']
+        self.channels=['_slot1', '_slot2', '_slot3', '_slot4', '_slot5', '_slot6', '_slot7', '_slot8']
         self.channels[G]='G'
         self.channels[D]='D'    
         
@@ -349,13 +376,13 @@ class nmosfet:
             d=smu.parseresult(r, channels)
             return d['V_G'][0]
 
-class pmosfet:
+class pmosfet(mosfet):
     def __init__(self, smu, G=2, D=4):
         assert(D!=G)
         self.smu = smu
         self.G=G
         self.D=D
-        self.channels=['slot1', 'slot2', 'slot3', 'slot4', 'slot5', 'slot6', 'slot7', 'slot8']
+        self.channels=['_slot1', '_slot2', '_slot3', '_slot4', '_slot5', '_slot6', '_slot7', '_slot8']
         self.channels[G]='G'
         self.channels[D]='D'
 
@@ -438,7 +465,7 @@ class zener:
     def __init__(self, smu, A=2):
         self.smu = smu
         self.A=A
-        self.channels=['slot1', 'slot2', 'slot3', 'slot4', 'slot5', 'slot6', 'slot7', 'slot8']
+        self.channels=['_slot1', '_slot2', '_slot3', '_slot4', '_slot5', '_slot6', '_slot7', '_slot8']
         self.channels[A]='A'
 
     def meas_diode():
@@ -490,18 +517,19 @@ class zener:
         d=parseresult(r, channels)
         #print(d)
         return -d['V_A'][0]
+
+    def rz():
+        #diode=meas_diode()
+        #rev=None
+        rev=meas_diode_rev()
+        i1=0.1e-3
+        vz1=vz(Iz=i1)
+        i2=35e-3
+        vz2=vz(Iz=i2)
+        Rz=(vz2-vz1)/(i2-i1)
+        
+        print("Vz@%f mA = %f" % (1e3*i1, vz1))
+        print("Vz@%f mA = %f" % (1e3*i2, vz2))
+        print("Rz = %f"%(Rz))
     
-    #diode=meas_diode()
-    #rev=None
-    rev=meas_diode_rev()
-    i1=0.1e-3
-    vz1=vz(Iz=i1)
-    i2=35e-3
-    vz2=vz(Iz=i2)
-    Rz=(vz2-vz1)/(i2-i1)
-    
-    print("Vz@%f mA = %f" % (1e3*i1, vz1))
-    print("Vz@%f mA = %f" % (1e3*i2, vz2))
-    print("Rz = %f"%(Rz))
-    
-    print("Done")
+        print("Done")
