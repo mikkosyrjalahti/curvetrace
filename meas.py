@@ -1,4 +1,5 @@
 import logging
+import time
 
 log = logging.getLogger(__name__)
 
@@ -15,12 +16,12 @@ class measurement:
         self.smu.xe()
         time.sleep(delay)
         
-        self.smu.zero()        
         self.smu.disconnect()
         
-        print(smu.error())
+        print(self.smu.errors())
         
         r=self.smu.readresult()
+
         d=self.smu.parseresult(r, self.channels)
         
         return d
@@ -328,16 +329,16 @@ class nmosfet(mosfet):
             return d['V_G'][0]
 
 class pmosfet(mosfet):
-    def __init__(self, smu, G=2, D=4):
+    def __init__(self, smu, G=4, D=2):
         assert(D!=G)
         self.smu = smu
         self.G=G
         self.D=D
         self.channels=['_slot1', '_slot2', '_slot3', '_slot4', '_slot5', '_slot6', '_slot7', '_slot8']
-        self.channels[G]='G'
-        self.channels[D]='D'
+        self.channels[G-1]='G'
+        self.channels[D-1]='D'
 
-    def meas_pfet(self, Vgs=0.0, Vds_max=-10, Ids_max=0.1, Igs_max=-1e-3, P_max=1):
+    def ids_vds(self, Vgs=0.0, Vds_max=-10, Ids_max=0.1, Igs_max=-1e-3, P_max=1):
         smu=self.smu
         G=self.G
         D=self.D
@@ -352,7 +353,7 @@ class pmosfet(mosfet):
             
         return d
         
-    def vgs_ids(self, Vds=-5, Vgs_min=0, Vgs_max=-12, Ids_max=-10e-3):
+    def ids_vgs(self, Vds=-5, Vgs_min=0, Vgs_max=-12, Ids_max=-10e-3):
         smu=self.smu
         G=self.G
         D=self.D        
