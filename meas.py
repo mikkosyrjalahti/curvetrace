@@ -4,6 +4,10 @@ import time
 log = logging.getLogger(__name__)
 
 class measurement:
+    def __init__(self, smu):
+        self.smu=smu
+        self.channels = self.channels=['_slot_cpu', '_slot1', '_slot2', '_slot3', '_slot4', '_slot5', '_slot6', '_slot7', '_slot8']
+        
     def connect(self):
         cc = []
         for ch in self.channels:
@@ -21,7 +25,7 @@ class measurement:
         print(self.smu.errors())
         
         r=self.smu.readresult()
-
+        #print(r)
         d=self.smu.parseresult(r, self.channels)
         
         return d
@@ -330,13 +334,12 @@ class nmosfet(mosfet):
 
 class pmosfet(mosfet):
     def __init__(self, smu, G=4, D=2):
+        super(pmosfet, self).__init__(smu=smu)        
         assert(D!=G)
-        self.smu = smu
         self.G=G
         self.D=D
-        self.channels=['_slot1', '_slot2', '_slot3', '_slot4', '_slot5', '_slot6', '_slot7', '_slot8']
-        self.channels[G-1]='G'
-        self.channels[D-1]='D'
+        self.channels[G]='G'
+        self.channels[D]='D'
 
     def ids_vds(self, Vgs=0.0, Vds_max=-10, Ids_max=0.1, Igs_max=-1e-3, P_max=1):
         smu=self.smu
@@ -398,35 +401,42 @@ class pmosfet(mosfet):
         
         return d['V_G'][0]
 
-class zener:
+class zener(measurement):
     def __init__(self, smu, A=2):
-        self.smu = smu
+        super(zener, self).__init__(smu=smu)        
         self.A=A
-        self.channels=['_slot1', '_slot2', '_slot3', '_slot4', '_slot5', '_slot6', '_slot7', '_slot8']
         self.channels[A]='A'
 
-    def meas_diode(self):
+    def fwd_curve(self, v_lim=40, i_lim=100e-3):
+        assert(v_lim>0)
+        assert(i_lim>0)
+        
         smu=self.smu
         A=self.A
         
         smu.connect([A])
-        smu.sweep_i(A, start=1e-8, stop=100e-3, v_lim=20, mode='log', n=50)
-        smu.write("MM2,6\n")
+        smu.sweep_i(A, start=1e-8, stop=i_lim, v_lim=v_lim, mode='log', n=50)
+        smu.write("MM2,2\n")
         
         d=self.xe_and_read()
 
         return d
 
-    def meas_diode_rev(self):
+    def rev_curve(self, v_lim=-40, i_lim=-40e-3):
+        assert(v_lim < 0)
+        assert(i_lim < 0)
+        
         smu=self.smu
         A=self.A        
         smu.connect([A])
         
-        smu.sweep_i(A, start=-1e-8, stop=-40e-3, v_lim=-20, mode='log', n=50, p_lim=5)
-        smu.write("MM2,6\n")
-        smu.sweep_timing(hold=0.05, delay=0.05)
+        smu.sweep_i(A, start=-1e-8, stop=i_lim, v_lim=v_lim, mode='log', n=50, p_lim=5)
+        smu.write("MM2,2\n")
+        smu.sweep_timing(hold=0.1, delay=0.1)
 
         d=self.xe_and_read()
+
+        return d
 
     def vz(self, V_test=40, Iz=10e-3):
         smu=self.smu
@@ -434,20 +444,15 @@ class zener:
         smu.connect([A])
         
         smu.current(A, -Iz, v_lim=V_test)
-        smu.write("MM1,6\n")
+        smu.write("MM1,2\n")
 
         d=self.xe_and_read()
 
         return -d['V_A'][0]
 
-    def rz():
-        #diode=meas_diode()
-        #rev=None
-        rev=meas_diode_rev()
-        i1=0.1e-3
-        vz1=vz(Iz=i1)
-        i2=35e-3
-        vz2=vz(Iz=i2)
+    def rz(self, i1=10e-3, i2=20e-3, V_test=40):
+        vz1=self.vz(Iz=i1, V_test=V_test)
+        vz2=self.vz(Iz=i2, V_test=V_test)
         Rz=(vz2-vz1)/(i2-i1)
         
         print("Vz@%f mA = %f" % (1e3*i1, vz1))
