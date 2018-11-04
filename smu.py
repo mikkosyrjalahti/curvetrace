@@ -236,7 +236,7 @@ class hp4142b(object):
         items = res.split(",")
         for i in items:
             st=i[0]
-            ch=channelnames[int(ord(i[1])-ord('A'))]
+            ch=channelnames[1+int(ord(i[1])-ord('A'))]
             meas=i[2]
             v=float(i[3:])
             if(st in ('N', 'W', 'E')):
